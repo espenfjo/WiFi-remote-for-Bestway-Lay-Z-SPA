@@ -3,27 +3,39 @@
 BWC bwc;
 
 // initial stack
-char *stack_start;
+char* stack_start;
 uint32_t heap_water_mark;
 
 /* firmware update content */
-// #define URL_fw_Version "/visualapproach/WiFi-remote-for-Bestway-Lay-Z-SPA/development_v4/Code/fw/version.txt"
-// #define URL_filelist "/visualapproach/WiFi-remote-for-Bestway-Lay-Z-SPA/development_v4/Code/datazip/filelist.txt"
-// #define URL_filedir "/visualapproach/WiFi-remote-for-Bestway-Lay-Z-SPA/development_v4/Code/datazip/"
-// #define URL_fw_Bin "https://raw.githubusercontent.com/visualapproach/WiFi-remote-for-Bestway-Lay-Z-SPA/development_v4/Code/fw/firmware.bin"
-// #define URL_fw_Version "/visualapproach/WiFi-remote-for-Bestway-Lay-Z-SPA/master/Code/fw/version.txt"
-// #define URL_filelist "/visualapproach/WiFi-remote-for-Bestway-Lay-Z-SPA/master/Code/datazip/filelist.txt"
-// #define URL_filedir "/visualapproach/WiFi-remote-for-Bestway-Lay-Z-SPA/master/Code/datazip/"
-// #define URL_fw_Bin "https://raw.githubusercontent.com/visualapproach/WiFi-remote-for-Bestway-Lay-Z-SPA/master/Code/fw/firmware.bin"
-const char URL_part1[] PROGMEM = "/visualapproach/WiFi-remote-for-Bestway-Lay-Z-SPA/";
+// #define URL_fw_Version
+// "/visualapproach/WiFi-remote-for-Bestway-Lay-Z-SPA/development_v4/Code/fw/version.txt"
+// #define URL_filelist
+// "/visualapproach/WiFi-remote-for-Bestway-Lay-Z-SPA/development_v4/Code/datazip/filelist.txt"
+// #define URL_filedir
+// "/visualapproach/WiFi-remote-for-Bestway-Lay-Z-SPA/development_v4/Code/datazip/"
+// #define URL_fw_Bin
+// "https://raw.githubusercontent.com/visualapproach/WiFi-remote-for-Bestway-Lay-Z-SPA/development_v4/Code/fw/firmware.bin"
+// #define URL_fw_Version
+// "/visualapproach/WiFi-remote-for-Bestway-Lay-Z-SPA/master/Code/fw/version.txt"
+// #define URL_filelist
+// "/visualapproach/WiFi-remote-for-Bestway-Lay-Z-SPA/master/Code/datazip/filelist.txt"
+// #define URL_filedir
+// "/visualapproach/WiFi-remote-for-Bestway-Lay-Z-SPA/master/Code/datazip/"
+// #define URL_fw_Bin
+// "https://raw.githubusercontent.com/visualapproach/WiFi-remote-for-Bestway-Lay-Z-SPA/master/Code/fw/firmware.bin"
+const char URL_part1[] PROGMEM =
+    "/visualapproach/WiFi-remote-for-Bestway-Lay-Z-SPA/";
 const char URL_fw_version[] PROGMEM = "/Code/fw/version.txt";
 const char URL_filelist[] PROGMEM = "/Code/datazip/filelist.txt";
 const char URL_filedir[] PROGMEM = "/Code/datazip/";
-const char URL_fw_bin_part1[] PROGMEM = "https://raw.githubusercontent.com/visualapproach/WiFi-remote-for-Bestway-Lay-Z-SPA/";
+const char URL_fw_bin_part1[] PROGMEM =
+    "https://raw.githubusercontent.com/visualapproach/"
+    "WiFi-remote-for-Bestway-Lay-Z-SPA/";
 const char URL_fw_bin[] PROGMEM = "/Code/fw/firmware.bin";
 
 const char* host = "raw.githubusercontent.com";
 const int httpsPort = 443;
+
 // /*Defined in "certs.h"*/
 // X509List cert(cert_DigiCert_Global_Root_CA);
 // DigiCert High Assurance EV Root CA
@@ -51,19 +63,22 @@ YSEY1QSteDwsOoBrp+uvFRTp2InBuThs4pFsiv9kuXclVzDAGySj4dzp30d8tbQk
 CAUw7C29C79Fv1C5qfPrmAESrciIxpg0X40KPMbp1ZWVbd4=
 -----END CERTIFICATE-----
 )EOF";
+
+#ifdef ESP8266
 X509List cert(trustRoot);
+#endif
+
 // extern const unsigned char caCert[] PROGMEM;
 // extern const unsigned int caCertLen;
-    
+
 // Setup a oneWire instance to communicate with any OneWire devices
 // Setting arbitrarily to 231 since this isn't an actual pin
-// Later during "setup" the correct pin will be set, if enabled 
+// Later during "setup" the correct pin will be set, if enabled
 OneWire oneWire(231);
-// Pass our oneWire reference to Dallas Temperature sensor 
+// Pass our oneWire reference to Dallas Temperature sensor
 DallasTemperature tempSensors(&oneWire);
 
-void setup()
-{
+void setup() {
     // init record of stack
     char stack;
     stack_start = &stack;
@@ -72,13 +87,23 @@ void setup()
     Serial.println(F("\nStart"));
     bwc.setup();
     bwc.loop();
-    periodicTimer.attach(periodicTimerInterval, []{ periodicTimerFlag = true; });
+    periodicTimer.attach(periodicTimerInterval,
+                         [] { periodicTimerFlag = true; });
     // delayed mqtt start
-    startComplete.attach(60, []{ if(useMqtt) enableMqtt = true; startComplete.detach(); });
+    startComplete.attach(60, [] {
+        if (useMqtt)
+            enableMqtt = true;
+        startComplete.detach();
+    });
     // update webpage every 2 seconds. (will also be updated on state changes)
-    updateWSTimer.attach(2.0, []{ sendWSFlag = true; });
+    updateWSTimer.attach(2.0, [] { sendWSFlag = true; });
     // when NTP time is valid we save bootlog.txt and this timer stops
-    bootlogTimer.attach(5, []{ if(time(nullptr)>57600) {bwc.saveRebootInfo(); bootlogTimer.detach();} });
+    bootlogTimer.attach(5, [] {
+        if (time(nullptr) > 57600) {
+            bwc.saveRebootInfo();
+            bootlogTimer.detach();
+        }
+    });
     loadWifi();
     loadWebConfig();
     startWiFi();
@@ -87,8 +112,7 @@ void setup()
     startHttpServer();
     startWebSocket();
     startMqtt();
-    if(bwc.hasTempSensor)
-    { 
+    if (bwc.hasTempSensor) {
         oneWire.begin(bwc.tempSensorPin);
         tempSensors.begin();
     }
@@ -102,18 +126,17 @@ void setup()
     bwc.loadCommandQueue();
 }
 
-void loop()
-{
+void loop() {
     uint32_t freeheap = ESP.getFreeHeap();
-    if(freeheap < heap_water_mark) heap_water_mark = freeheap;
+    if (freeheap < heap_water_mark)
+        heap_water_mark = freeheap;
     // We need this self-destructing info several times, so save it locally
     bool newData = bwc.newData();
     // Fiddle with the pump computer
     bwc.loop();
 
     // run only when a wifi connection is established
-    if (WiFi.status() == WL_CONNECTED)
-    {
+    if (WiFi.status() == WL_CONNECTED) {
         // listen for websocket events
         // webSocket.loop();
         // listen for webserver events
@@ -122,33 +145,30 @@ void loop()
         ArduinoOTA.handle();
 
         // MQTT
-        if (enableMqtt && mqttClient.loop())
-        {
+        if (enableMqtt && mqttClient.loop()) {
             String msg = bwc.getButtonName();
-            // publish pretty button name if display button is pressed (or NOBTN if released)
-            if (!msg.equals(prevButtonName))
-            {
-                mqttClient.publish((String(mqttBaseTopic) + "/button").c_str(), String(msg).c_str(), true);
+            // publish pretty button name if display button is pressed (or NOBTN
+            // if released)
+            if (!msg.equals(prevButtonName)) {
+                mqttClient.publish((String(mqttBaseTopic) + "/button").c_str(),
+                                   String(msg).c_str(), true);
                 prevButtonName = msg;
             }
 
-            if (newData || sendMQTTFlag)
-            {
+            if (newData || sendMQTTFlag) {
                 sendMQTT();
                 sendMQTTFlag = false;
             }
         }
 
         // web socket
-        if (newData || sendWSFlag)
-        {
+        if (newData || sendWSFlag) {
             sendWSFlag = false;
             sendWS();
         }
 
         // run once after connection was established
-        if (!wifiConnected)
-        {
+        if (!wifiConnected) {
             // Serial.println(F("WiFi > Connected"));
             // Serial.println(" SSID: \"" + WiFi.SSID() + "\"");
             // Serial.println(" IP: \"" + WiFi.localIP().toString() + "\"");
@@ -161,61 +181,56 @@ void loop()
     }
 
     // run only when the wifi connection got lost
-    if (WiFi.status() != WL_CONNECTED)
-    {
+    if (WiFi.status() != WL_CONNECTED) {
         // run once after connection was lost
-        if (wifiConnected)
-        {
-            // Serial.println(F("WiFi > Lost connection. Trying to reconnect ..."));
+        if (wifiConnected) {
+            // Serial.println(F("WiFi > Lost connection. Trying to reconnect
+            // ..."));
         }
         // set marker
         wifiConnected = false;
     }
 
     // run every X seconds
-    if (periodicTimerFlag)
-    {
+    if (periodicTimerFlag) {
         periodicTimerFlag = false;
-        if (WiFi.status() != WL_CONNECTED)
-        {
+        if (WiFi.status() != WL_CONNECTED) {
             bwc.print(F("check network"));
             // Serial.println(F("WiFi > Trying to reconnect ..."));
         }
-        if (WiFi.status() == WL_CONNECTED)
-        {
+        if (WiFi.status() == WL_CONNECTED) {
             // could be interesting to display the IP
-            //bwc.print(WiFi.localIP().toString());
+            // bwc.print(WiFi.localIP().toString());
 
-            if (time(nullptr)<57600)
-            {
+            if (time(nullptr) < 57600) {
                 // Serial.println(F("NTP > Start synchronisation"));
                 startNTP();
             }
 
-            if (enableMqtt && !mqttClient.loop())
-            {
+            if (enableMqtt && !mqttClient.loop()) {
                 // Serial.println(F("MQTT > Not connected"));
                 mqttConnect();
             }
         }
-        // Leverage the pre-existing periodicTimerFlag to also set temperature, if enabled
+        // Leverage the pre-existing periodicTimerFlag to also set temperature,
+        // if enabled
         setTemperatureFromSensor();
     }
 
-    //Only do this if locked out! (by pressing POWER - LOCK - TIMER - POWER)
-    //   if(bwc.getBtnSeqMatch())
-    //   {
-    //     resetWiFi();
-    //     ESP.reset();
-    //   }
-    //handleAUX();
+    // Only do this if locked out! (by pressing POWER - LOCK - TIMER - POWER)
+    //    if(bwc.getBtnSeqMatch())
+    //    {
+    //      resetWiFi();
+    //      ESP.reset();
+    //    }
+    // handleAUX();
 }
 
 /**
- * Send status data to web client in JSON format (because it is easy to decode on the other side)
+ * Send status data to web client in JSON format (because it is easy to decode
+ * on the other side)
  */
-void sendWS()
-{
+void sendWS() {
     // send states
     String json = bwc.getJSONStates();
     webSocket.broadcastTXT(json);
@@ -235,8 +250,7 @@ void sendWS()
     // Serial.print(asctime(&timeinfo));
 }
 
-String getOtherInfo()
-{
+String getOtherInfo() {
     // DynamicJsonDocument doc(512);
     StaticJsonDocument<512> doc;
     String json = "";
@@ -256,8 +270,7 @@ String getOtherInfo()
     bwc.loop_count = 0;
 
     // Serialize JSON to string
-    if (serializeJson(doc, json) == 0)
-    {
+    if (serializeJson(doc, json) == 0) {
         json = F("{\"error\": \"Failed to serialize other\"}");
     }
     return json;
@@ -271,43 +284,36 @@ String getOtherInfo()
  * compatible I choose to start a new topic "/times"
  * @author 877dev
  */
-void sendMQTT()
-{
+void sendMQTT() {
     String json;
 
     // send states
     json = bwc.getJSONStates();
-    if (mqttClient.publish((String(mqttBaseTopic) + "/message").c_str(), String(json).c_str(), true))
-    {
-        //Serial.println(F("MQTT > message published"));
+    if (mqttClient.publish((String(mqttBaseTopic) + "/message").c_str(),
+                           String(json).c_str(), true)) {
+        // Serial.println(F("MQTT > message published"));
+    } else {
+        // Serial.println(F("MQTT > message not published"));
     }
-    else
-    {
-        //Serial.println(F("MQTT > message not published"));
-    }
-delay(2);
+    delay(2);
 
     // send times
     json = bwc.getJSONTimes();
-    if (mqttClient.publish((String(mqttBaseTopic) + "/times").c_str(), String(json).c_str(), true))
-    {
-        //Serial.println(F("MQTT > times published"));
+    if (mqttClient.publish((String(mqttBaseTopic) + "/times").c_str(),
+                           String(json).c_str(), true)) {
+        // Serial.println(F("MQTT > times published"));
+    } else {
+        // Serial.println(F("MQTT > times not published"));
     }
-    else
-    {
-        //Serial.println(F("MQTT > times not published"));
-    }
-delay(2);
+    delay(2);
 
-    //send other info
+    // send other info
     json = getOtherInfo();
-    if (mqttClient.publish((String(mqttBaseTopic) + "/other").c_str(), String(json).c_str(), true))
-    {
-        //Serial.println(F("MQTT > other published"));
-    }
-    else
-    {
-        //Serial.println(F("MQTT > other not published"));
+    if (mqttClient.publish((String(mqttBaseTopic) + "/other").c_str(),
+                           String(json).c_str(), true)) {
+        // Serial.println(F("MQTT > other published"));
+    } else {
+        // Serial.println(F("MQTT > other not published"));
     }
 }
 
@@ -315,22 +321,22 @@ delay(2);
  * Start a Wi-Fi access point, and try to connect to some given access points.
  * Then wait for either an AP or STA connection
  */
-void startWiFi()
-{
-    //WiFi.mode(WIFI_STA);
+void startWiFi() {
+    // WiFi.mode(WIFI_STA);
     WiFi.setAutoReconnect(true);
     WiFi.persistent(true);
     WiFi.hostname(netHostname);
 
-    if (enableStaticIp4)
-    {
-        // Serial.println("WiFi > using static IP \"" + ip4Address.toString() + "\" on gateway \"" + ip4Gateway.toString() + "\"");
-        WiFi.config(ip4Address, ip4Gateway, ip4Subnet, ip4DnsPrimary, ip4DnsSecondary);
+    if (enableStaticIp4) {
+        // Serial.println("WiFi > using static IP \"" + ip4Address.toString() +
+        // "\" on gateway \"" + ip4Gateway.toString() + "\"");
+        WiFi.config(ip4Address, ip4Gateway, ip4Subnet, ip4DnsPrimary,
+                    ip4DnsSecondary);
     }
 
-    if (enableAp)
-    {
-        // Serial.println("WiFi > using WiFi configuration with SSID \"" + apSsid + "\"");
+    if (enableAp) {
+        // Serial.println("WiFi > using WiFi configuration with SSID \"" +
+        // apSsid + "\"");
 
         WiFi.begin(apSsid.c_str(), apPwd.c_str());
 
@@ -338,18 +344,15 @@ void startWiFi()
         int maxTries = 10;
         int tryCount = 0;
 
-        while (WiFi.status() != WL_CONNECTED)
-        {
+        while (WiFi.status() != WL_CONNECTED) {
             delay(1000);
             // Serial.print(".");
             tryCount++;
 
-            if (tryCount >= maxTries)
-            {
+            if (tryCount >= maxTries) {
                 // Serial.println("");
                 // Serial.println(F("WiFi > NOT connected!"));
-                if (enableWmApFallback)
-                {
+                if (enableWmApFallback) {
                     // disable specific WiFi config
                     enableAp = false;
                     enableStaticIp4 = false;
@@ -360,14 +363,11 @@ void startWiFi()
             }
             // Serial.println("");
         }
-    }
-    else
-    {
+    } else {
         startWiFiConfigPortal();
     }
 
-    if (WiFi.status() == WL_CONNECTED)
-    {
+    if (WiFi.status() == WL_CONNECTED) {
         enableAp = true;
         apSsid = WiFi.SSID();
         apPwd = WiFi.psk();
@@ -378,23 +378,20 @@ void startWiFi()
         // Serial.println(F("WiFi > Connected."));
         // Serial.println(" SSID: \"" + WiFi.SSID() + "\"");
         // Serial.println(" IP: \"" + WiFi.localIP().toString() + "\"");
-    }
-    else
-    {
-        // Serial.println(F("WiFi > Connection failed. Retrying in a while ..."));
+    } else {
+        // Serial.println(F("WiFi > Connection failed. Retrying in a while
+        // ..."));
     }
 }
 
 /**
  * start WiFiManager configuration portal
  */
-void startWiFiConfigPortal()
-{
+void startWiFiConfigPortal() {
     Serial.println(F("WiFi > Using WiFiManager Config Portal"));
     wm.autoConnect(wmApName, wmApPassword);
     // Serial.print(F("WiFi > Trying to connect ..."));
-    while (WiFi.status() != WL_CONNECTED)
-    {
+    while (WiFi.status() != WL_CONNECTED) {
         delay(500);
         // Serial.print(".");
     }
@@ -404,9 +401,8 @@ void startWiFiConfigPortal()
 /**
  * start NTP sync
  */
-void startNTP()
-{
-    configTime(0,0,"pool.ntp.org", "time.nist.gov");
+void startNTP() {
+    configTime(0, 0, "pool.ntp.org", "time.nist.gov");
     time_t now = time(nullptr);
     while (now < 8 * 3600 * 2) {
         delay(500);
@@ -420,15 +416,14 @@ void startNTP()
     // Serial.print(asctime(&timeinfo));
 
     time_t boot_timestamp = getBootTime();
-    tm * boot_time_tm = gmtime(&boot_timestamp);
+    tm* boot_time_tm = gmtime(&boot_timestamp);
     char boot_time_str[64];
     strftime(boot_time_str, 64, "%F %T", boot_time_tm);
     bwc.reboot_time_str = String(boot_time_str);
     bwc.reboot_time_t = boot_timestamp;
 }
 
-void startOTA()
-{
+void startOTA() {
     ArduinoOTA.setHostname(OTAName);
     ArduinoOTA.setPassword(OTAPassword);
 
@@ -440,27 +435,28 @@ void startOTA()
         // Serial.println(F("OTA > End"));
     });
     ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-        // Serial.printf("OTA > Progress: %u%%\r\n", (progress / (total / 100)));
+        // Serial.printf("OTA > Progress: %u%%\r\n", (progress / (total /
+        // 100)));
     });
     ArduinoOTA.onError([](ota_error_t error) {
         // Serial.printf("OTA > Error[%u]: ", error);
         // if (error == OTA_AUTH_ERROR) Serial.println(F("Auth Failed"));
         // else if (error == OTA_BEGIN_ERROR) Serial.println(F("Begin Failed"));
-        // else if (error == OTA_CONNECT_ERROR) Serial.println(F("Connect Failed"));
-        // else if (error == OTA_RECEIVE_ERROR) Serial.println(F("Receive Failed"));
-        // else if (error == OTA_END_ERROR) Serial.println(F("End Failed"));
+        // else if (error == OTA_CONNECT_ERROR) Serial.println(F("Connect
+        // Failed")); else if (error == OTA_RECEIVE_ERROR)
+        // Serial.println(F("Receive Failed")); else if (error == OTA_END_ERROR)
+        // Serial.println(F("End Failed"));
     });
     ArduinoOTA.begin();
     // Serial.println(F("OTA > ready"));
 }
 
-void stopall()
-{
+void stopall() {
     bwc.stop();
     updateMqttTimer.detach();
     periodicTimer.detach();
     updateWSTimer.detach();
-    //bwc.saveSettings();
+    // bwc.saveSettings();
     LittleFS.end();
     server.stop();
     webSocket.close();
@@ -468,26 +464,28 @@ void stopall()
 }
 
 /*pause: action=true cont: action=false*/
-void pause_resume(bool action)
-{
-    if(action)
-    {
+void pause_resume(bool action) {
+    if (action) {
         periodicTimer.detach();
         startComplete.detach();
         updateWSTimer.detach();
         bootlogTimer.detach();
-    } else 
-    {
-        periodicTimer.attach(periodicTimerInterval, []{ periodicTimerFlag = true; });
-        startComplete.attach(60, []{ if(useMqtt) enableMqtt = true; startComplete.detach(); });
-        updateWSTimer.attach(2.0, []{ sendWSFlag = true; });
-        //bootlogTimer.attach(5, []{ if(DateTime.isTimeValid()) {bwc.saveRebootInfo(); bootlogTimer.detach();} });
+    } else {
+        periodicTimer.attach(periodicTimerInterval,
+                             [] { periodicTimerFlag = true; });
+        startComplete.attach(60, [] {
+            if (useMqtt)
+                enableMqtt = true;
+            startComplete.detach();
+        });
+        updateWSTimer.attach(2.0, [] { sendWSFlag = true; });
+        // bootlogTimer.attach(5, []{ if(DateTime.isTimeValid())
+        // {bwc.saveRebootInfo(); bootlogTimer.detach();} });
     }
     bwc.pause_resume(action);
 }
 
-void startWebSocket()
-{
+void startWebSocket() {
     // In case we are already running
     webSocket.close();
     webSocket.begin();
@@ -499,36 +497,31 @@ void startWebSocket()
 /**
  * handle web socket events
  */
-void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t len)
-{
+void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t len) {
     // When a WebSocket message is received
-    switch (type)
-    {
+    switch (type) {
         // if the websocket is disconnected
         case WStype_DISCONNECTED:
-        // Serial.printf("WebSocket > [%u] Disconnected!\r\n", num);
-        break;
+            // Serial.printf("WebSocket > [%u] Disconnected!\r\n", num);
+            break;
 
         // if a new websocket connection is established
-        case WStype_CONNECTED:
-        {
+        case WStype_CONNECTED: {
             // IPAddress ip = webSocket.remoteIP(num);
-            // Serial.printf("WebSocket > [%u] Connected from %d.%d.%d.%d url: %s\r\n", num, ip[0], ip[1], ip[2], ip[3], payload);
+            // Serial.printf("WebSocket > [%u] Connected from %d.%d.%d.%d url:
+            // %s\r\n", num, ip[0], ip[1], ip[2], ip[3], payload);
             sendWS();
-        }
-        break;
+        } break;
 
         // if new text data is received
-        case WStype_TEXT:
-        {
+        case WStype_TEXT: {
             // Serial.printf("WebSocket > [%u] get Text: %s\r\n", num, payload);
             // DynamicJsonDocument doc(256);
             StaticJsonDocument<256> doc;
             DeserializationError error = deserializeJson(doc, payload);
-            if (error)
-            {
-            Serial.println(F("WebSocket > JSON command failed"));
-            return;
+            if (error) {
+                Serial.println(F("WebSocket > JSON command failed"));
+                return;
             }
 
             // Copy values from the JsonDocument to the Config
@@ -544,19 +537,17 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t len)
             item.interval = interval;
             item.text = txt;
             bwc.add_command(item);
-        }
-        break;
+        } break;
 
         default:
-        break;
+            break;
     }
 }
 
 /**
  * start a HTTP server with a file read and upload handler
  */
-void startHttpServer()
-{
+void startHttpServer() {
     // In case we are already running
     server.stop();
     server.on(F("/getconfig/"), handleGetConfig);
@@ -572,37 +563,42 @@ void startHttpServer()
     server.on(F("/setmqtt/"), handleSetMqtt);
     server.on(F("/dir/"), handleDir);
     server.on(F("/hwtest/"), handleHWtest);
-    server.on(F("/upload.html"), HTTP_POST, [](){
-        server.send(200, "text/plain", "");
-    }, handleFileUpload);
+    server.on(
+        F("/upload.html"), HTTP_POST,
+        []() { server.send(200, "text/plain", ""); }, handleFileUpload);
     server.on(F("/remove.html"), HTTP_POST, handleFileRemove);
     server.on(F("/remove/"), HTTP_GET, handleFileRemove);
     server.on(F("/restart/"), handleRestart);
-    server.on(F("/metrics"), handlePrometheusMetrics);  //prometheus metrics
+    server.on(F("/metrics"), handlePrometheusMetrics);  // prometheus metrics
     server.on(F("/info/"), handleESPInfo);
     server.on(F("/sethardware/"), handleSetHardware);
     server.on(F("/gethardware/"), handleGetHardware);
     server.on(F("/update/"), handleUpdateMaster);
     server.on(F("/update_beta/"), handleUpdateBeta);
     server.on(F("/getversions/"), handleGetVersions);
-    server.on(F("/debug-on/"), [](){bwc.BWC_DEBUG = true; server.send(200, "text/plain", "ok");});
-    server.on(F("/debug-off/"), [](){bwc.BWC_DEBUG = false; server.send(200, "text/plain", "ok");});
-    // server.on(F("/getfiles/"), updateFiles);    
+    server.on(F("/debug-on/"), []() {
+        bwc.BWC_DEBUG = true;
+        server.send(200, "text/plain", "ok");
+    });
+    server.on(F("/debug-off/"), []() {
+        bwc.BWC_DEBUG = false;
+        server.send(200, "text/plain", "ok");
+    });
+    // server.on(F("/getfiles/"), updateFiles);
 
-    // if someone requests any other file or page, go to function 'handleNotFound'
-    // and check if the file exists
+    // if someone requests any other file or page, go to function
+    // 'handleNotFound' and check if the file exists
     server.onNotFound(handleNotFound);
     // start the HTTP server
     server.begin();
     // Serial.println(F("HTTP > server started"));
 }
 
-void handleGetHardware()
-{
-    if (!checkHttpPost(server.method())) return;
+void handleGetHardware() {
+    if (!checkHttpPost(server.method()))
+        return;
     File file = LittleFS.open("hwcfg.json", "r");
-    if (!file)
-    {
+    if (!file) {
         // Serial.println(F("Failed to open hwcfg.json"));
         server.send(404, "text/plain", "not found");
         return;
@@ -611,14 +607,13 @@ void handleGetHardware()
     file.close();
 }
 
-void handleSetHardware()
-{
-    if (!checkHttpPost(server.method())) return;
+void handleSetHardware() {
+    if (!checkHttpPost(server.method()))
+        return;
     String message = server.arg(0);
     // Serial.printf("Set hw message; %s\n", message.c_str());
     File file = LittleFS.open("hwcfg.json", "w");
-    if (!file)
-    {
+    if (!file) {
         // Serial.println(F("Failed to save hwcfg.json"));
         return;
     }
@@ -628,8 +623,7 @@ void handleSetHardware()
     // Serial.println("sethardware done");
 }
 
-void handleHWtest()
-{
+void handleHWtest() {
     int errors = 0;
     bool state = false;
     String result = "";
@@ -637,44 +631,42 @@ void handleHWtest()
     bwc.stop();
     delay(1000);
 
-    for(int pin = 0; pin < 3; pin++)
-    {
+    for (int pin = 0; pin < 3; pin++) {
         pinMode(bwc.pins[pin], OUTPUT);
-        pinMode(bwc.pins[pin+3], INPUT);
-        for(int t = 0; t < 1000; t++)
-        {
-        state = !state;
-        digitalWrite(bwc.pins[pin], state);
-        delayMicroseconds(10);
-        errors += digitalRead(bwc.pins[pin+3]) != state;
+        pinMode(bwc.pins[pin + 3], INPUT);
+        for (int t = 0; t < 1000; t++) {
+            state = !state;
+            digitalWrite(bwc.pins[pin], state);
+            delayMicroseconds(10);
+            errors += digitalRead(bwc.pins[pin + 3]) != state;
         }
-        if(errors > 499)
-        result += F("CIO to DSP pin ") + String(pin+3) + F(" fail!\n");
-        else if(errors == 0)
-        result += F("CIO to DSP pin ") + String(pin+3) + F(" success!\n");
+        if (errors > 499)
+            result += F("CIO to DSP pin ") + String(pin + 3) + F(" fail!\n");
+        else if (errors == 0)
+            result += F("CIO to DSP pin ") + String(pin + 3) + F(" success!\n");
         else
-        result += F("CIO to DSP pin ") + String(pin+3) + " " + String(errors/500) + F("\% bad\n");
+            result += F("CIO to DSP pin ") + String(pin + 3) + " " +
+                      String(errors / 500) + F("\% bad\n");
         errors = 0;
         delay(0);
     }
     result += F("\n");
-    for(int pin = 0; pin < 3; pin++)
-    {
-        pinMode(bwc.pins[pin+3], OUTPUT);
+    for (int pin = 0; pin < 3; pin++) {
+        pinMode(bwc.pins[pin + 3], OUTPUT);
         pinMode(bwc.pins[pin], INPUT);
-        for(int t = 0; t < 1000; t++)
-        {
-        state = !state;
-        digitalWrite(bwc.pins[pin+3], state);
-        delayMicroseconds(10);
-        errors += digitalRead(bwc.pins[pin]) != state;
+        for (int t = 0; t < 1000; t++) {
+            state = !state;
+            digitalWrite(bwc.pins[pin + 3], state);
+            delayMicroseconds(10);
+            errors += digitalRead(bwc.pins[pin]) != state;
         }
-        if(errors > 499)
-        result += F("DSP to CIO pin ") + String(pin+3) + F(" fail!\n");
-        else if(errors == 0)
-        result += F("DSP to CIO pin ") + String(pin+3) + F(" success!\n");
+        if (errors > 499)
+            result += F("DSP to CIO pin ") + String(pin + 3) + F(" fail!\n");
+        else if (errors == 0)
+            result += F("DSP to CIO pin ") + String(pin + 3) + F(" success!\n");
         else
-        result += F("DSP to CIO pin ") + String(pin+3) + " " + String(errors/500) + F("\% bad\n");
+            result += F("DSP to CIO pin ") + String(pin + 3) + " " +
+                      String(errors / 500) + F("\% bad\n");
         errors = 0;
         delay(0);
     }
@@ -684,70 +676,77 @@ void handleHWtest()
     bwc.setup();
 }
 
-void handleNotFound()
-{
+void handleNotFound() {
     // check if the file exists in the flash memory (LittleFS), if so, send it
-    if (!handleFileRead(server.uri()))
-    {
+    if (!handleFileRead(server.uri())) {
         server.send(404, "text/plain", "404: File Not Found");
     }
 }
 
-String getContentType(const String& filename)
-{
-    if (filename.endsWith(".html")) return F("text/html");
-    else if (filename.endsWith(".css")) return F("text/css");
-    else if (filename.endsWith(".js")) return F("application/javascript");
-    else if (filename.endsWith(".ico")) return F("image/x-icon");
-    else if (filename.endsWith(".gz")) return F("application/x-gzip");
-    else if (filename.endsWith(".json")) return F("application/json");
+String getContentType(const String& filename) {
+    if (filename.endsWith(".html"))
+        return F("text/html");
+    else if (filename.endsWith(".css"))
+        return F("text/css");
+    else if (filename.endsWith(".js"))
+        return F("application/javascript");
+    else if (filename.endsWith(".ico"))
+        return F("image/x-icon");
+    else if (filename.endsWith(".gz"))
+        return F("application/x-gzip");
+    else if (filename.endsWith(".json"))
+        return F("application/json");
     return F("text/plain");
 }
 
 /**
  * send the right file to the client (if it exists)
  */
-bool handleFileRead(String path)
-{
+bool handleFileRead(String path) {
+#ifdef ESP8266
     HeapSelectIram ephemeral;
+#endif
     // Serial.println("HTTP > request: " + path);
     // If a folder is requested, send the index file
-    if (path.endsWith("/"))
-    {
+    if (path.endsWith("/")) {
         path += F("index.html");
     }
     // deny reading credentials
-    if (path.equalsIgnoreCase("/mqtt.json") || path.equalsIgnoreCase("/wifi.json"))
-    {
+    if (path.equalsIgnoreCase("/mqtt.json") ||
+        path.equalsIgnoreCase("/wifi.json")) {
         server.send(403, "text/plain", "Permission denied.");
         // Serial.println(F("HTTP > file reading denied (credentials)."));
         return false;
     }
-    String contentType = getContentType(path);             // Get the MIME type
+    String contentType = getContentType(path);  // Get the MIME type
     String pathWithGz = path + ".gz";
-    if (LittleFS.exists(pathWithGz) || LittleFS.exists(path)) { // If the file exists, either as a compressed archive, or normal
-        if (LittleFS.exists(pathWithGz))                         // If there's a compressed version available
-            path += ".gz";                                         // Use the compressed version
-        File file = LittleFS.open(path, "r");                    // Open the file
+    if (LittleFS.exists(pathWithGz) ||
+        LittleFS.exists(path)) {  // If the file exists, either as a compressed
+                                  // archive, or normal
+        if (LittleFS.exists(
+                pathWithGz))  // If there's a compressed version available
+            path += ".gz";    // Use the compressed version
+        File file = LittleFS.open(path, "r");  // Open the file
         size_t fsize = file.size();
-        size_t sent = server.streamFile(file, contentType);    // Send it to the client
+        size_t sent =
+            server.streamFile(file, contentType);  // Send it to the client
         // server.streamFile(file, contentType);    // Send it to the client
-        file.close();                                          // Close the file again
+        file.close();  // Close the file again
         Serial.println(F("File size: ") + String(fsize));
-        Serial.println(F("HTTP > file sent: ") + path + F(" (") + sent + F(" bytes)"));
+        Serial.println(F("HTTP > file sent: ") + path + F(" (") + sent +
+                       F(" bytes)"));
         return true;
     }
-    // Serial.println("HTTP > file not found: " + path);   // If the file doesn't exist, return false
+    // Serial.println("HTTP > file not found: " + path);   // If the file
+    // doesn't exist, return false
     return false;
 }
 
 /**
  * checks the method to be a POST
  */
-bool checkHttpPost(HTTPMethod method)
-{
-    if (method != HTTP_POST)
-    {
+bool checkHttpPost(HTTPMethod method) {
+    if (method != HTTP_POST) {
         server.send(405, "text/plain", "Method not allowed.");
         return false;
     }
@@ -758,9 +757,9 @@ bool checkHttpPost(HTTPMethod method)
  * response for /getconfig/
  * web server prints a json document
  */
-void handleGetConfig()
-{
-    if (!checkHttpPost(server.method())) return;
+void handleGetConfig() {
+    if (!checkHttpPost(server.method()))
+        return;
 
     String json = bwc.getJSONSettings();
     server.send(200, "text/plain", json);
@@ -770,9 +769,9 @@ void handleGetConfig()
  * response for /setconfig/
  * web server writes a json document
  */
-void handleSetConfig()
-{
-    if (!checkHttpPost(server.method())) return;
+void handleSetConfig() {
+    if (!checkHttpPost(server.method()))
+        return;
 
     String message = server.arg(0);
     bwc.setJSONSettings(message);
@@ -784,9 +783,9 @@ void handleSetConfig()
  * response for /getcommands/
  * web server prints a json document
  */
-void handleGetCommandQueue()
-{
-    if (!checkHttpPost(server.method())) return;
+void handleGetCommandQueue() {
+    if (!checkHttpPost(server.method()))
+        return;
 
     String json = bwc.getJSONCommandQueue();
     server.send(200, "application/json", json);
@@ -796,16 +795,15 @@ void handleGetCommandQueue()
  * response for /addcommand/
  * add a command to the queue
  */
-void handleAddCommand()
-{
-    if (!checkHttpPost(server.method())) return;
+void handleAddCommand() {
+    if (!checkHttpPost(server.method()))
+        return;
 
     // DynamicJsonDocument doc(256);
     StaticJsonDocument<256> doc;
     String message = server.arg(0);
     DeserializationError error = deserializeJson(doc, message);
-    if (error)
-    {
+    if (error) {
         server.send(400, "text/plain", "Error deserializing message");
         return;
     }
@@ -829,24 +827,19 @@ void handleAddCommand()
 /**
  * load "Web Config" json configuration from "webconfig.json"
  */
-void loadWebConfig()
-{
+void loadWebConfig() {
     // DynamicJsonDocument doc(1024);
     StaticJsonDocument<256> doc;
 
     File file = LittleFS.open("/webconfig.json", "r");
-    if (file)
-    {
+    if (file) {
         DeserializationError error = deserializeJson(doc, file);
-        if (error)
-        {
-        // Serial.println(F("Failed to deserialize webconfig.json"));
-        file.close();
-        return;
+        if (error) {
+            // Serial.println(F("Failed to deserialize webconfig.json"));
+            file.close();
+            return;
         }
-    }
-    else
-    {
+    } else {
         // Serial.println(F("Failed to read webconfig.json. Using defaults."));
     }
 
@@ -862,11 +855,9 @@ void loadWebConfig()
 /**
  * save "Web Config" json configuration to "webconfig.json"
  */
-void saveWebConfig()
-{
+void saveWebConfig() {
     File file = LittleFS.open("/webconfig.json", "w");
-    if (!file)
-    {
+    if (!file) {
         // Serial.println(F("Failed to save webconfig.json"));
         return;
     }
@@ -882,8 +873,7 @@ void saveWebConfig()
     doc[F("SSTOT")] = showSectionTotals;
     doc[F("UCS")] = useControlSelector;
 
-    if (serializeJson(doc, file) == 0)
-    {
+    if (serializeJson(doc, file) == 0) {
         // Serial.println(F("{\"error\": \"Failed to serialize file\"}"));
     }
     file.close();
@@ -893,9 +883,9 @@ void saveWebConfig()
  * response for /getwebconfig/
  * web server prints a json document
  */
-void handleGetWebConfig()
-{
-    if (!checkHttpPost(server.method())) return;
+void handleGetWebConfig() {
+    if (!checkHttpPost(server.method()))
+        return;
 
     // DynamicJsonDocument doc(256);
     StaticJsonDocument<256> doc;
@@ -909,8 +899,7 @@ void handleGetWebConfig()
     doc[F("UCS")] = useControlSelector;
 
     String json;
-    if (serializeJson(doc, json) == 0)
-    {
+    if (serializeJson(doc, json) == 0) {
         json = F("{\"error\": \"Failed to serialize webcfg\"}");
     }
     server.send(200, "application/json", json);
@@ -920,16 +909,15 @@ void handleGetWebConfig()
  * response for /setwebconfig/
  * web server writes a json document
  */
-void handleSetWebConfig()
-{
-    if (!checkHttpPost(server.method())) return;
+void handleSetWebConfig() {
+    if (!checkHttpPost(server.method()))
+        return;
 
     // DynamicJsonDocument doc(256);
     StaticJsonDocument<256> doc;
     String message = server.arg(0);
     DeserializationError error = deserializeJson(doc, message);
-    if (error)
-    {
+    if (error) {
         // Serial.println(F("Failed to read config file"));
         server.send(400, "text/plain", "Error deserializing message");
         return;
@@ -951,11 +939,9 @@ void handleSetWebConfig()
 /**
  * load WiFi json configuration from "wifi.json"
  */
-void loadWifi()
-{
+void loadWifi() {
     File file = LittleFS.open("/wifi.json", "r");
-    if (!file)
-    {
+    if (!file) {
         // Serial.println(F("Failed to read wifi.json. Using defaults."));
         return;
     }
@@ -963,15 +949,15 @@ void loadWifi()
     DynamicJsonDocument doc(1024);
 
     DeserializationError error = deserializeJson(doc, file);
-    if (error)
-    {
+    if (error) {
         // Serial.println(F("Failed to deserialize wifi.json"));
         file.close();
         return;
     }
 
     enableAp = doc[F("enableAp")];
-    if(doc.containsKey("enableWM")) enableWmApFallback = doc[F("enableWM")];
+    if (doc.containsKey("enableWM"))
+        enableWmApFallback = doc[F("enableWM")];
     apSsid = doc[F("apSsid")].as<String>();
     apPwd = doc[F("apPwd")].as<String>();
 
@@ -1001,11 +987,9 @@ void loadWifi()
 /**
  * save WiFi json configuration to "wifi.json"
  */
-void saveWifi()
-{
+void saveWifi() {
     File file = LittleFS.open("/wifi.json", "w");
-    if (!file)
-    {
+    if (!file) {
         // Serial.println(F("Failed to save wifi.json"));
         return;
     }
@@ -1039,8 +1023,7 @@ void saveWifi()
     doc[F("ip4DnsSecondary")][2] = ip4DnsSecondary[2];
     doc[F("ip4DnsSecondary")][3] = ip4DnsSecondary[3];
 
-    if (serializeJson(doc, file) == 0)
-    {
+    if (serializeJson(doc, file) == 0) {
         // Serial.println(F("{\"error\": \"Failed to serialize file\"}"));
     }
     file.close();
@@ -1050,9 +1033,9 @@ void saveWifi()
  * response for /getwifi/
  * web server prints a json document
  */
-void handleGetWifi()
-{
-    if (!checkHttpPost(server.method())) return;
+void handleGetWifi() {
+    if (!checkHttpPost(server.method()))
+        return;
 
     DynamicJsonDocument doc(1024);
 
@@ -1060,8 +1043,7 @@ void handleGetWifi()
     doc[F("enableWM")] = enableWmApFallback;
     doc[F("apSsid")] = apSsid;
     doc[F("apPwd")] = "<enter password>";
-    if (!hidePasswords)
-    {
+    if (!hidePasswords) {
         doc[F("apPwd")] = apPwd;
     }
 
@@ -1088,8 +1070,7 @@ void handleGetWifi()
     doc[F("ip4DnsSecondary")][3] = ip4DnsSecondary[3];
 
     String json;
-    if (serializeJson(doc, json) == 0)
-    {
+    if (serializeJson(doc, json) == 0) {
         json = F("{\"error\": \"Failed to serialize message\"}");
     }
     server.send(200, "application/json", json);
@@ -1099,22 +1080,22 @@ void handleGetWifi()
  * response for /setwifi/
  * web server writes a json document
  */
-void handleSetWifi()
-{
-    if (!checkHttpPost(server.method())) return;
+void handleSetWifi() {
+    if (!checkHttpPost(server.method()))
+        return;
 
     DynamicJsonDocument doc(1024);
     String message = server.arg(0);
     DeserializationError error = deserializeJson(doc, message);
-    if (error)
-    {
+    if (error) {
         // Serial.println(F("Failed to read config file"));
         server.send(400, "text/plain", "Error deserializing message");
         return;
     }
 
     enableAp = doc[F("enableAp")];
-    if(doc.containsKey("enableWM")) enableWmApFallback = doc[F("enableWM")];
+    if (doc.containsKey("enableWM"))
+        enableWmApFallback = doc[F("enableWM")];
     apSsid = doc[F("apSsid")].as<String>();
     apPwd = doc[F("apPwd")].as<String>();
 
@@ -1147,27 +1128,27 @@ void handleSetWifi()
 
 /**
  * response for /resetwifi/
- * do this before giving away the device (be aware of other credentials e.g. MQTT)
- * a complete flash erase should do the job but remember to upload the filesystem as well.
+ * do this before giving away the device (be aware of other credentials e.g.
+ * MQTT) a complete flash erase should do the job but remember to upload the
+ * filesystem as well.
  */
-void handleResetWifi()
-{
+void handleResetWifi() {
     server.send(200, F("text/html"), F("WiFi connection reset (erase) ..."));
     // Serial.println(F("WiFi connection reset (erase) ..."));
     resetWiFi();
 
-    server.send(200, F("text/html"), F("WiFi connection reset (erase) ... done."));
-    // Serial.println(F("WiFi connection reset (erase) ... done."));
-    // Serial.println(F("ESP reset ..."));
-    #if defined(ESP8266)
+    server.send(200, F("text/html"),
+                F("WiFi connection reset (erase) ... done."));
+// Serial.println(F("WiFi connection reset (erase) ... done."));
+// Serial.println(F("ESP reset ..."));
+#if defined(ESP8266)
     ESP.reset();
-    #else
+#else
     ESP.restart();
-    #endif
+#endif
 }
 
-void resetWiFi()
-{
+void resetWiFi() {
     periodicTimer.detach();
     updateMqttTimer.detach();
     updateWSTimer.detach();
@@ -1187,18 +1168,16 @@ void resetWiFi()
     delay(1000);
 
     wm.resetSettings();
-    //WiFi.disconnect();
+    // WiFi.disconnect();
     delay(1000);
 }
 
 /**
  * load MQTT json configuration from "mqtt.json"
  */
-void loadMqtt()
-{
+void loadMqtt() {
     File file = LittleFS.open("mqtt.json", "r");
-    if (!file)
-    {
+    if (!file) {
         Serial.println(F("Failed to read mqtt.json. Using defaults."));
         return;
     }
@@ -1206,8 +1185,7 @@ void loadMqtt()
     DynamicJsonDocument doc(1024);
 
     DeserializationError error = deserializeJson(doc, file);
-    if (error)
-    {
+    if (error) {
         // Serial.println(F("Failed to deserialize mqtt.json."));
         file.close();
         return;
@@ -1230,11 +1208,9 @@ void loadMqtt()
 /**
  * save MQTT json configuration to "mqtt.json"
  */
-void saveMqtt()
-{
+void saveMqtt() {
     File file = LittleFS.open("mqtt.json", "w");
-    if (!file)
-    {
+    if (!file) {
         // Serial.println(F("Failed to save mqtt.json"));
         return;
     }
@@ -1253,8 +1229,7 @@ void saveMqtt()
     doc[F("mqttBaseTopic")] = mqttBaseTopic;
     doc[F("mqttTelemetryInterval")] = mqttTelemetryInterval;
 
-    if (serializeJson(doc, file) == 0)
-    {
+    if (serializeJson(doc, file) == 0) {
         // Serial.println(F("{\"error\": \"Failed to serialize file\"}"));
     }
     file.close();
@@ -1264,9 +1239,9 @@ void saveMqtt()
  * response for /getmqtt/
  * web server prints a json document
  */
-void handleGetMqtt()
-{
-    if (!checkHttpPost(server.method())) return;
+void handleGetMqtt() {
+    if (!checkHttpPost(server.method()))
+        return;
 
     DynamicJsonDocument doc(1024);
 
@@ -1278,8 +1253,7 @@ void handleGetMqtt()
     doc[F("mqttPort")] = mqttPort;
     doc[F("mqttUsername")] = mqttUsername;
     doc[F("mqttPassword")] = "<enter password>";
-    if (!hidePasswords)
-    {
+    if (!hidePasswords) {
         doc[F("mqttPassword")] = mqttPassword;
     }
     doc[F("mqttClientId")] = mqttClientId;
@@ -1287,8 +1261,7 @@ void handleGetMqtt()
     doc[F("mqttTelemetryInterval")] = mqttTelemetryInterval;
 
     String json;
-    if (serializeJson(doc, json) == 0)
-    {
+    if (serializeJson(doc, json) == 0) {
         json = F("{\"error\": \"Failed to serialize message\"}");
     }
     server.send(200, "text/plain", json);
@@ -1298,15 +1271,14 @@ void handleGetMqtt()
  * response for /setmqtt/
  * web server writes a json document
  */
-void handleSetMqtt()
-{
-    if (!checkHttpPost(server.method())) return;
+void handleSetMqtt() {
+    if (!checkHttpPost(server.method()))
+        return;
 
     DynamicJsonDocument doc(1024);
     String message = server.arg(0);
     DeserializationError error = deserializeJson(doc, message);
-    if (error)
-    {
+    if (error) {
         // Serial.println(F("Failed to read config file"));
         server.send(400, "text/plain", "Error deserializing message");
         return;
@@ -1335,48 +1307,43 @@ void handleSetMqtt()
  * response for /dir/
  * web server prints a list of files
  */
-void handleDir()
-{
-    #ifdef ESP8266
+void handleDir() {
+#ifdef ESP8266
     String mydir;
     Dir root = LittleFS.openDir("/");
-    while (root.next())
-    {
+    while (root.next()) {
         // Serial.println(root.fileName());
         String href = root.fileName();
-        if (href.endsWith(".gz")) href.remove(href.length()-3);
+        if (href.endsWith(".gz"))
+            href.remove(href.length() - 3);
         mydir += F("<a href=\"/") + href + "\">" + root.fileName() + "</a>";
         mydir += F("   Size: ") + String(root.fileSize()) + F(" Bytes ");
-        mydir += F("   <a href=\"/remove/?FileToRemove=") + root.fileName() + F("\">remove</a><br>");
+        mydir += F("   <a href=\"/remove/?FileToRemove=") + root.fileName() +
+                 F("\">remove</a><br>");
     }
     server.send(200, "text/html", mydir);
-    #endif
+#endif
 }
 
 /**
  * response for /upload.html
  * upload a new file to the LittleFS
  */
-void handleFileUpload()
-{
+void handleFileUpload() {
     HTTPUpload& upload = server.upload();
     String path;
-    if (upload.status == UPLOAD_FILE_START)
-    {
+    if (upload.status == UPLOAD_FILE_START) {
         path = upload.filename;
-        if (!path.startsWith("/"))
-        {
+        if (!path.startsWith("/")) {
             path = "/" + path;
         }
 
         // The file server always prefers a compressed version of a file
-        if (!path.endsWith(".gz"))
-        {
+        if (!path.endsWith(".gz")) {
             // So if an uploaded file is not compressed, the existing compressed
             String pathWithGz = path + ".gz";
             // version of that file must be deleted (if it exists)
-            if (LittleFS.exists(pathWithGz))
-            {
+            if (LittleFS.exists(pathWithGz)) {
                 LittleFS.remove(pathWithGz);
             }
         }
@@ -1387,43 +1354,31 @@ void handleFileUpload()
         // Open the file for writing in LittleFS (create if it doesn't exist)
         fsUploadFile = LittleFS.open(path, "w");
         path = String();
-    }
-    else if (upload.status == UPLOAD_FILE_WRITE)
-    {
-        if (fsUploadFile)
-        {
+    } else if (upload.status == UPLOAD_FILE_WRITE) {
+        if (fsUploadFile) {
             // Write the received bytes to the file
             fsUploadFile.write(upload.buf, upload.currentSize);
             // Serial.print("file write ");
             // Serial.println(path);
         }
-    }
-    else if (upload.status == UPLOAD_FILE_END)
-    {
-        if (fsUploadFile)
-        {
+    } else if (upload.status == UPLOAD_FILE_END) {
+        if (fsUploadFile) {
             fsUploadFile.close();
             Serial.print(F("handleFileUpload Size: "));
             Serial.println(upload.totalSize);
             server.sendHeader("location", "success.html");
             server.send(303);
-            if (upload.filename == "cmdq.json")
-            {
+            if (upload.filename == "cmdq.json") {
                 bwc.reloadCommandQueue();
             }
-            if (upload.filename == "settings.json")
-            {
+            if (upload.filename == "settings.json") {
                 bwc.reloadSettings();
             }
-        }
-        else
-        {
+        } else {
             Serial.println(F("err: 500"));
             server.send(500, "text/plain", "500: couldn't create file");
         }
-    }
-    else
-    {
+    } else {
         Serial.print(F("upload status"));
         Serial.println(upload.status);
         server.send(500, "text/plain", "500: upload aborted");
@@ -1434,30 +1389,25 @@ void handleFileUpload()
  * response for /remove.html
  * delete a file from the LittleFS
  */
-void handleFileRemove()
-{
+void handleFileRemove() {
     String path;
     path = server.arg(F("FileToRemove"));
-    if (!path.startsWith("/"))
-    {
+    if (!path.startsWith("/")) {
         path = "/" + path;
     }
 
     // Serial.print(F("handleFileRemove Name: "));
     // Serial.println(path);
 
-    if (LittleFS.exists(path) && LittleFS.remove(path))
-    {
+    if (LittleFS.exists(path) && LittleFS.remove(path)) {
         // Serial.print(F("handleFileRemove success: "));
         // Serial.println(path);
-        if(server.method() == HTTP_GET)
+        if (server.method() == HTTP_GET)
             server.sendHeader("Location", "/dir/");
         else
             server.sendHeader("Location", "/success.html");
         server.send(303);
-    }
-    else
-    {
+    } else {
         // Serial.print(F("handleFileRemove error: "));
         // Serial.println(path);
         server.send(500, "text/plain", "500: couldn't delete file");
@@ -1467,8 +1417,7 @@ void handleFileRemove()
 /**
  * response for /restart/
  */
-void handleRestart()
-{
+void handleRestart() {
     server.send(200, F("text/html"), F("ESP restart ..."));
 
     server.sendHeader(F("Location"), "/");
@@ -1482,8 +1431,7 @@ void handleRestart()
     delay(3000);
 }
 
-void handleGetVersions()
-{
+void handleGetVersions() {
     String master = checkFirmwareUpdate(false);
     String beta = checkFirmwareUpdate(true);
     // DynamicJsonDocument doc(128);
@@ -1494,44 +1442,43 @@ void handleGetVersions()
     doc[F("available")] = master;
     doc[F("beta")] = beta;
     // Serialize JSON to string
-    if (serializeJson(doc, json) == 0)
-    {
+    if (serializeJson(doc, json) == 0) {
         json = F("{\"error\": \"Failed to serialize message\"}");
     }
     server.send(200, "text/plain", json);
 }
 
-String checkFirmwareUpdate(bool betaversion)
-{
+String checkFirmwareUpdate(bool betaversion) {
     pause_resume(true);
-    HeapSelectIram ephemeral;
     WiFiClientSecure client;
+#ifdef ESP8266
+    HeapSelectIram ephemeral;
     client.setTrustAnchors(&cert);
-    if(client.probeMaxFragmentLength(host, httpsPort, 512))
+
+    if (client.probeMaxFragmentLength(host, httpsPort, 512))
         client.setBufferSizes(512, 256);
+#elif ESP32
+    client.setCACert(trustRoot);
+#endif
     int count = 0;
     if (!client.connect(host, httpsPort)) {
         Serial.println(F("Connection to github failed"));
-        if(++count > 5)
-        {
+        if (++count > 5) {
             pause_resume(false);
             return "check failed";
         }
     }
     String URL = FPSTR(URL_part1);
-    if(betaversion)
-    {
+    if (betaversion) {
         URL += String("development_v4") + FPSTR(URL_fw_version);
-    }
-    else
-    {
+    } else {
         URL += String("master") + FPSTR(URL_fw_version);
     }
 
-    client.print(String("GET ") + URL + F(" HTTP/1.1\r\n") +
-                F("Host: ") + host + "\r\n" +
-                F("User-Agent: BuildFailureDetectorESP8266\r\n") +
-                F("Connection: close\r\n\r\n"));
+    client.print(String("GET ") + URL + F(" HTTP/1.1\r\n") + F("Host: ") +
+                 host + "\r\n" +
+                 F("User-Agent: BuildFailureDetectorESP8266\r\n") +
+                 F("Connection: close\r\n\r\n"));
     while (client.available() || client.connected()) {
         String line = client.readStringUntil('\n');
         if (line == "\r") {
@@ -1546,68 +1493,69 @@ String checkFirmwareUpdate(bool betaversion)
     return payload;
 }
 
-void handleUpdateMaster()
-{
+void handleUpdateMaster() {
     handleUpdate(false);
 }
 
-void handleUpdateBeta()
-{
+void handleUpdateBeta() {
     handleUpdate(true);
 }
 
-void handleUpdate(bool betaversion)
-{
+void handleUpdate(bool betaversion) {
     server.sendHeader("location", "/");
     server.send(303);
     pause_resume(true);
     bool success = updateFiles(betaversion);
     Serial.printf("Files DL: %s\n", success ? "success" : "failed");
-    if(success){
-    } else
-    {
+    if (success) {
+    } else {
         // server.send(500, "text/plain", "Err downloading files");
         pause_resume(false);
         return;
     }
     delay(1000);
-    // setClock();
-    HeapSelectIram ephemeral;
+
     WiFiClientSecure client;
+#ifdef ESP8266
+    HeapSelectIram ephemeral;
     client.setTrustAnchors(&cert);
-    // client.setInsecure();
-    if(client.probeMaxFragmentLength(host, httpsPort, 1024))
+
+    if (client.probeMaxFragmentLength(host, httpsPort, 1024))
         client.setBufferSizes(1024, 512);
+#elif ESP32
+    client.setCACert(trustRoot);
+#endif
     int count = 0;
     if (!client.connect(host, httpsPort)) {
         Serial.println(F("Connection to github failed"));
-        if(++count > 5)
-        {
+        if (++count > 5) {
             pause_resume(false);
             return;
         }
     }
-    // Serial.println(client.getMFLNStatus());
+// Serial.println(client.getMFLNStatus());
+#ifdef ESP8266
     ESPhttpUpdate.onStart(updateStart);
     ESPhttpUpdate.onEnd(updateEnd);
-    // ESPhttpUpdate.onProgress(udpateProgress);
     ESPhttpUpdate.onError(updateError);
+#elif ESP32
+    httpUpdate.onStart(updateStart);
+    httpUpdate.onEnd(updateEnd);
+    httpUpdate.onError(updateError);
+#endif
     String URL_binary = FPSTR(URL_fw_bin_part1);
     String URL_version = FPSTR(URL_part1);
-    if(betaversion)
-    {
+    if (betaversion) {
         URL_binary += String("development_v4") + FPSTR(URL_fw_bin);
         URL_version += String("development_v4") + FPSTR(URL_fw_version);
-    }
-    else
-    {
+    } else {
         URL_binary += String("master") + FPSTR(URL_fw_bin);
         URL_version += String("master") + FPSTR(URL_fw_version);
     }
     client.print(String("GET ") + URL_version + F(" HTTP/1.1\r\n") +
-                F("Host: ") + host + "\r\n" +
-                F("User-Agent: BuildFailureDetectorESP8266\r\n") +
-                F("Connection: close\r\n\r\n"));
+                 F("Host: ") + host + "\r\n" +
+                 F("User-Agent: BuildFailureDetectorESP8266\r\n") +
+                 F("Connection: close\r\n\r\n"));
     // bool headersreceived = false;
     while (client.available() || client.connected()) {
         String line = client.readStringUntil('\n');
@@ -1624,66 +1572,84 @@ void handleUpdate(bool betaversion)
     Serial.printf("pl: %s\n", payload.c_str());
     Serial.print("FW: ");
     Serial.println(FW_VERSION);
-    if(payload.equals(FW_VERSION) )
-    {   
-        Serial.println(F("Device already on latest firmware version")); 
-    }
-    else
-    {
+    if (payload.equals(FW_VERSION)) {
+        Serial.println(F("Device already on latest firmware version"));
+    } else {
         Serial.println(F("New firmware detected"));
-        // ESPhttpUpdate.setLedPin(LED_BUILTIN, LOW); 
+// ESPhttpUpdate.setLedPin(LED_BUILTIN, LOW);
+#ifdef ESP8266
         t_httpUpdate_return ret = ESPhttpUpdate.update(client, URL_binary);
-            
+#elif ESP32
+        t_httpUpdate_return ret = httpUpdate.update(client, URL_binary);
+#endif
+
         switch (ret) {
-        case HTTP_UPDATE_FAILED:
-            Serial.printf("HTTP_UPDATE_FAILED Error (%d): %s\n", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
-            break;
+            case HTTP_UPDATE_FAILED:
+#ifdef ESP8266
+                Serial.printf("HTTP_UPDATE_FAILED Error (%d): %s\n",
+                              ESPhttpUpdate.getLastError(),
+                              ESPhttpUpdate.getLastErrorString().c_str());
+#elif ESP32
+                Serial.printf("HTTP_UPDATE_FAILED Error (%d): %s\n",
+                              httpUpdate.getLastError(),
+                              httpUpdate.getLastErrorString().c_str());
+#endif
+                break;
 
-        case HTTP_UPDATE_NO_UPDATES:
-            Serial.println(F("HTTP_UPDATE_NO_UPDATES"));
-            break;
+            case HTTP_UPDATE_NO_UPDATES:
+                Serial.println(F("HTTP_UPDATE_NO_UPDATES"));
+                break;
 
-        case HTTP_UPDATE_OK:
-            Serial.println(F("HTTP_UPDATE_OK"));
-            break;
+            case HTTP_UPDATE_OK:
+                Serial.println(F("HTTP_UPDATE_OK"));
+                break;
         }
     }
     pause_resume(false);
 }
 
-bool updateFiles(bool betaversion)
-{
-    HeapSelectIram ephemeral;
-// Serial.printf("Heap: %d, frag: %d\n", ESP.getFreeHeap(), ESP.getHeapFragmentation());
+bool updateFiles(bool betaversion) {
     WiFiClientSecure client;
+#ifdef ESP8266
+    HeapSelectIram ephemeral;
+    // Serial.printf("Heap: %d, frag: %d\n", ESP.getFreeHeap(),
+    // ESP.getHeapFragmentation());
     client.setTrustAnchors(&cert);
+
     // client.setInsecure();
-    if(client.probeMaxFragmentLength(host, httpsPort, 512))
+    if (client.probeMaxFragmentLength(host, httpsPort, 512))
         client.setBufferSizes(512, 256);
+#elif ESP32
+    client.setCACert(trustRoot);
+#endif
+
     if (!client.connect(host, httpsPort)) {
         Serial.println(F("Connection to github failed"));
         return false;
     }
-// Serial.printf("Heap: %d, frag: %d\n", ESP.getFreeHeap(), ESP.getHeapFragmentation());
-    // Serial.println(client.getMFLNStatus());
+// Serial.printf("Heap: %d, frag: %d\n", ESP.getFreeHeap(),
+// ESP.getHeapFragmentation()); Serial.println(client.getMFLNStatus());
+#ifdef ESP8266
     ESPhttpUpdate.onStart(updateStart);
     ESPhttpUpdate.onEnd(updateEnd);
     // ESPhttpUpdate.onProgress(udpateProgress);
     ESPhttpUpdate.onError(updateError);
+#elif ESP32
+    httpUpdate.onStart(updateStart);
+    httpUpdate.onEnd(updateEnd);
+    httpUpdate.onError(updateError);
+#endif
     String URL = FPSTR(URL_part1);
-    if(betaversion)
-    {
+    if (betaversion) {
         URL += String("development_v4") + FPSTR(URL_filelist);
-    }
-    else
-    {
+    } else {
         URL += String("master") + FPSTR(URL_filelist);
     }
 
-    client.print(String("GET ") + URL + F(" HTTP/1.1\r\n") +
-                F("Host: ") + host + "\r\n" +
-                F("User-Agent: BuildFailureDetectorESP8266\r\n") +
-                F("Connection: close\r\n\r\n"));
+    client.print(String("GET ") + URL + F(" HTTP/1.1\r\n") + F("Host: ") +
+                 host + "\r\n" +
+                 F("User-Agent: BuildFailureDetectorESP8266\r\n") +
+                 F("Connection: close\r\n\r\n"));
     while (client.available() || client.connected()) {
         String line = client.readStringUntil('\n');
         // Serial.println(line);
@@ -1706,45 +1672,43 @@ bool updateFiles(bool betaversion)
 
     /*Load the files to flash*/
     URL = FPSTR(URL_part1);
-    if(betaversion)
-    {
+    if (betaversion) {
         URL += String("development_v4") + FPSTR(URL_filedir);
-    }
-    else
-    {
+    } else {
         URL += String("master") + FPSTR(URL_filedir);
     }
 
-    for(auto filename : files)
-    {
+    for (auto filename : files) {
         int contentLength = -1;
         Serial.print(filename);
         int count = 0;
-        if(client.probeMaxFragmentLength(host, httpsPort, 512))
+#ifdef ESP8266
+        if (client.probeMaxFragmentLength(host, httpsPort, 512))
             client.setBufferSizes(512, 256);
+#endif
         if (!client.connect(host, httpsPort)) {
             Serial.println(F("Connection to file failed"));
-            if(++count > 5) return false;
+            if (++count > 5)
+                return false;
         }
         client.print(String("GET ") + URL + filename + F(" HTTP/1.1\r\n") +
-                    F("Host: ") + host + "\r\n" +
-                    F("User-Agent: BuildFailureDetectorESP8266\r\n") +
-                    F("Connection: close\r\n\r\n"));
+                     F("Host: ") + host + "\r\n" +
+                     F("User-Agent: BuildFailureDetectorESP8266\r\n") +
+                     F("Connection: close\r\n\r\n"));
         while (client.available() || client.connected()) {
             String line = client.readStringUntil('\n');
             // Serial.println(line);
-            if (line.startsWith(F("Content-Length: ")))
-            {
+            if (line.startsWith(F("Content-Length: "))) {
                 contentLength = line.substring(15).toInt();
-            }            
+            }
             if (line == "\r") {
                 // Serial.println(F("Headers received"));
                 break;
             }
         }
         yield();
-        File f = LittleFS.open("/"+filename, "w");
-        if(!f) {
+        File f = LittleFS.open("/" + filename, "w");
+        if (!f) {
             Serial.println(F("file error"));
             return false;
         }
@@ -1753,7 +1717,8 @@ bool updateFiles(bool betaversion)
         int received;
         while ((client.available() || client.connected()) && remaining > 0) {
             Serial.print(".");
-            received = client.readBytes(buf, ((remaining > 512) ? 512 : remaining));
+            received =
+                client.readBytes(buf, ((remaining > 512) ? 512 : remaining));
             remaining -= received;
             f.write(buf, received);
         }
@@ -1764,16 +1729,16 @@ bool updateFiles(bool betaversion)
     return true;
 }
 
-void updateStart(){
+void updateStart() {
     Serial.println(F("update start"));
 }
-void updateEnd(){
+void updateEnd() {
     Serial.println(F("update finish"));
 }
-void udpateProgress(int cur, int total){
+void udpateProgress(int cur, int total) {
     Serial.printf_P(PSTR("update process at %d of %d bytes...\n"), cur, total);
 }
-void updateError(int err){
+void updateError(int err) {
     Serial.printf_P(PSTR("update fatal error code %d\n"), err);
 }
 
@@ -1781,8 +1746,7 @@ void updateError(int err){
  * MQTT setup and connect
  * @author 877dev
  */
-void startMqtt()
-{
+void startMqtt() {
     // load mqtt credential file if it exists, and update default strings
     loadMqtt();
 
@@ -1792,16 +1756,17 @@ void startMqtt()
     // setup MQTT broker information as defined earlier
     mqttClient.setServer(mqttIpAddress, mqttPort);
     // set buffer for larger messages, new to library 2.8.0
-    if (mqttClient.setBufferSize(1536))
-    {
+    if (mqttClient.setBufferSize(1536)) {
         // Serial.println(F("MQTT > Buffer size successfully increased"));
     }
     mqttClient.setKeepAlive(60);
     mqttClient.setSocketTimeout(30);
     // set callback details
-    // this function is called automatically whenever a message arrives on a subscribed topic.
+    // this function is called automatically whenever a message arrives on a
+    // subscribed topic.
     mqttClient.setCallback(mqttCallback);
-    // Connect to MQTT broker, publish Status/MAC/count, and subscribe to keypad topic.
+    // Connect to MQTT broker, publish Status/MAC/count, and subscribe to keypad
+    // topic.
     mqttConnect();
 }
 
@@ -1809,25 +1774,21 @@ void startMqtt()
  * MQTT callback function
  * @author 877dev
  */
-void mqttCallback(char* topic, byte* payload, unsigned int length)
-{
+void mqttCallback(char* topic, byte* payload, unsigned int length) {
     // Serial.print(F("MQTT > Message arrived ["));
     // Serial.print(topic);
     // Serial.print(")] ");
-    for (unsigned int i = 0; i < length; i++)
-    {
+    for (unsigned int i = 0; i < length; i++) {
         // Serial.print((char)payload[i]);
     }
     // Serial.println();
-    if (String(topic).equals(String(mqttBaseTopic) + "/command"))
-    {
+    if (String(topic).equals(String(mqttBaseTopic) + "/command")) {
         // DynamicJsonDocument doc(256);
         StaticJsonDocument<256> doc;
-        String message = (const char *) &payload[0];
+        String message = (const char*)&payload[0];
         DeserializationError error = deserializeJson(doc, message);
-        if (error)
-        {
-        return;
+        if (error) {
+            return;
         }
 
         Commands command = doc[F("CMD")];
@@ -1845,13 +1806,11 @@ void mqttCallback(char* topic, byte* payload, unsigned int length)
     }
 
     /* author @malfurion, edited by @visualapproach for v4 */
-    if (String(topic).equals(String(mqttBaseTopic) + "/command_batch"))
-    {
+    if (String(topic).equals(String(mqttBaseTopic) + "/command_batch")) {
         DynamicJsonDocument doc(1024);
-        String message = (const char *) &payload[0];
+        String message = (const char*)&payload[0];
         DeserializationError error = deserializeJson(doc, message);
-        if (error)
-        {
+        if (error) {
             return;
         }
 
@@ -1875,124 +1834,134 @@ void mqttCallback(char* topic, byte* payload, unsigned int length)
 }
 
 /**
- * Connect to MQTT broker, publish Status/MAC/count, and subscribe to keypad topic.
+ * Connect to MQTT broker, publish Status/MAC/count, and subscribe to keypad
+ * topic.
  */
-void mqttConnect()
-{
+void mqttConnect() {
     // do not connect if MQTT is not enabled
-    if (!enableMqtt)
-    {
+    if (!enableMqtt) {
         return;
     }
 
     // Serial.print(F("MQTT > Connecting ... "));
-    // We'll connect with a Retained Last Will that updates the 'Status' topic with "Dead" when the device goes offline...
+    // We'll connect with a Retained Last Will that updates the 'Status' topic
+    // with "Dead" when the device goes offline...
     if (mqttClient.connect(
-        mqttClientId.c_str(), // client_id : the client ID to use when connecting to the server.
-        mqttUsername.c_str(), // username : the username to use. If NULL, no username or password is used (const char[])
-        mqttPassword.c_str(), // password : the password to use. If NULL, no password is used (const char[])
-        (String(mqttBaseTopic) + "/Status").c_str(), // willTopic : the topic to be used by the will message (const char[])
-        0, // willQoS : the quality of service to be used by the will message (int : 0,1 or 2)
-        1, // willRetain : whether the will should be published with the retain flag (int : 0 or 1)
-        "Dead")) // willMessage : the payload of the will message (const char[])
+            mqttClientId.c_str(),  // client_id : the client ID to use when
+                                   // connecting to the server.
+            mqttUsername
+                .c_str(),  // username : the username to use. If NULL, no
+                           // username or password is used (const char[])
+            mqttPassword.c_str(),  // password : the password to use. If NULL,
+                                   // no password is used (const char[])
+            (String(mqttBaseTopic) + "/Status")
+                .c_str(),  // willTopic : the topic to be used by the will
+                           // message (const char[])
+            0,  // willQoS : the quality of service to be used by the will
+                // message (int : 0,1 or 2)
+            1,  // willRetain : whether the will should be published with the
+                // retain flag (int : 0 or 1)
+            "Dead"))  // willMessage : the payload of the will message (const
+                      // char[])
     {
         // Serial.println(F("success!"));
         mqtt_connect_count++;
 
         // update MQTT every X seconds. (will also be updated on state changes)
-        updateMqttTimer.attach(mqttTelemetryInterval, []{ sendMQTTFlag = true; });
+        updateMqttTimer.attach(mqttTelemetryInterval,
+                               [] { sendMQTTFlag = true; });
 
-        // These all have the Retained flag set to true, so that the value is stored on the server and can be retrieved at any point
-        // Check the 'Status' topic to see that the device is still online before relying on the data from these retained topics
-        mqttClient.publish((String(mqttBaseTopic) + "/Status").c_str(), "Alive", true);
-        mqttClient.publish((String(mqttBaseTopic) + "/MAC_Address").c_str(), WiFi.macAddress().c_str(), true);                 // Device MAC Address
-        mqttClient.publish((String(mqttBaseTopic) + "/MQTT_Connect_Count").c_str(), String(mqtt_connect_count).c_str(), true); // MQTT Connect Count
+        // These all have the Retained flag set to true, so that the value is
+        // stored on the server and can be retrieved at any point Check the
+        // 'Status' topic to see that the device is still online before relying
+        // on the data from these retained topics
+        mqttClient.publish((String(mqttBaseTopic) + "/Status").c_str(), "Alive",
+                           true);
+        mqttClient.publish((String(mqttBaseTopic) + "/MAC_Address").c_str(),
+                           WiFi.macAddress().c_str(),
+                           true);  // Device MAC Address
+        mqttClient.publish(
+            (String(mqttBaseTopic) + "/MQTT_Connect_Count").c_str(),
+            String(mqtt_connect_count).c_str(), true);  // MQTT Connect Count
         mqttClient.loop();
 
         // Watch the 'command' topic for incoming MQTT messages
         mqttClient.subscribe((String(mqttBaseTopic) + "/command").c_str());
-        mqttClient.subscribe((String(mqttBaseTopic) + "/command_batch").c_str());
+        mqttClient.subscribe(
+            (String(mqttBaseTopic) + "/command_batch").c_str());
         mqttClient.loop();
 
-        #ifdef ESP8266
-        // mqttClient.publish((String(mqttBaseTopic) + "/reboot_time").c_str(), DateTime.format(DateFormatter::SIMPLE).c_str(), true);
-        mqttClient.publish((String(mqttBaseTopic) + "/reboot_time").c_str(), (bwc.reboot_time_str+'Z').c_str(), true);
-        mqttClient.publish((String(mqttBaseTopic) + "/reboot_reason").c_str(), ESP.getResetReason().c_str(), true);
-        mqttClient.publish((String(mqttBaseTopic) + "/button").c_str(), bwc.getButtonName().c_str(), true);
+#ifdef ESP8266
+        // mqttClient.publish((String(mqttBaseTopic) + "/reboot_time").c_str(),
+        // DateTime.format(DateFormatter::SIMPLE).c_str(), true);
+        mqttClient.publish((String(mqttBaseTopic) + "/reboot_time").c_str(),
+                           (bwc.reboot_time_str + 'Z').c_str(), true);
+        mqttClient.publish((String(mqttBaseTopic) + "/reboot_reason").c_str(),
+                           ESP.getResetReason().c_str(), true);
+        mqttClient.publish((String(mqttBaseTopic) + "/button").c_str(),
+                           bwc.getButtonName().c_str(), true);
         mqttClient.loop();
         sendMQTT();
         setupHA();
-        #endif
-    }
-    else
-    {
+#endif
+    } else {
         // Serial.print(F("failed, Return Code = "));
-        // Serial.println(mqttClient.state()); // states explained in WebSocket.js
+        // Serial.println(mqttClient.state()); // states explained in
+        // WebSocket.js
     }
 }
 
-time_t getBootTime()
-{
+time_t getBootTime() {
     time_t seconds = millis() / 1000;
     time_t result = time(nullptr) - seconds;
     return result;
 }
 
-void handleESPInfo()
-{
-    #ifdef ESP8266
+void handleESPInfo() {
+#ifdef ESP8266
     char stack;
     uint32_t stacksize = stack_start - &stack;
     size_t const BUFSIZE = 1024;
     char response[BUFSIZE];
-    char const *response_template =
-    PSTR("Stack size:          %u \n"
-    "Free Heap:           %u \n"
-    "Min  Heap:           %u \n"
-    "Core version:        %s \n"
-    "CPU fq:              %u MHz\n"
-    "Cycle count:         %u \n"
-    "Free cont stack:     %u \n"
-    "Sketch size:         %u \n"
-    "Free sketch space:   %u \n"
-    "Max free block size: %u \n");
+    char const* response_template = PSTR(
+        "Stack size:          %u \n"
+        "Free Heap:           %u \n"
+        "Min  Heap:           %u \n"
+        "Core version:        %s \n"
+        "CPU fq:              %u MHz\n"
+        "Cycle count:         %u \n"
+        "Free cont stack:     %u \n"
+        "Sketch size:         %u \n"
+        "Free sketch space:   %u \n"
+        "Max free block size: %u \n");
 
-    snprintf_P(response, BUFSIZE, response_template,
-        stacksize,
-        ESP.getFreeHeap(),
-        heap_water_mark,
-        ESP.getCoreVersion().c_str(),
-        ESP.getCpuFreqMHz(),
-        ESP.getCycleCount(),
-        ESP.getFreeContStack(),
-        ESP.getSketchSize(),
-        ESP.getFreeSketchSpace(),
-        ESP.getMaxFreeBlockSize() );
-        server.send(200, "text/plain; charset=utf-8", response);
-    #endif
+    snprintf_P(response, BUFSIZE, response_template, stacksize,
+               ESP.getFreeHeap(), heap_water_mark, ESP.getCoreVersion().c_str(),
+               ESP.getCpuFreqMHz(), ESP.getCycleCount(), ESP.getFreeContStack(),
+               ESP.getSketchSize(), ESP.getFreeSketchSpace(),
+               ESP.getMaxFreeBlockSize());
+    server.send(200, "text/plain; charset=utf-8", response);
+#endif
 }
 
-void setTemperatureFromSensor()
-{
-    if(bwc.hasTempSensor)
-    { 
-            tempSensors.requestTemperatures(); 
-            float temperatureC = tempSensors.getTempCByIndex(0);
-            //float temperatureF = tempSensors.getTempFByIndex(0);
-            //Serial.print(temperatureC);
-            //Serial.println("ºC");
-            //Serial.print(temperatureF);
-            //Serial.println("ºF");
+void setTemperatureFromSensor() {
+    if (bwc.hasTempSensor) {
+        tempSensors.requestTemperatures();
+        float temperatureC = tempSensors.getTempCByIndex(0);
+        // float temperatureF = tempSensors.getTempFByIndex(0);
+        // Serial.print(temperatureC);
+        // Serial.println("ºC");
+        // Serial.print(temperatureF);
+        // Serial.println("ºF");
 
-            // Ignore bad reads
-            if(temperatureC >= -20.0)
-            {
-                bwc.setAmbientTemperature(temperatureC, true);
-            }
+        // Ignore bad reads
+        if (temperatureC >= -20.0) {
+            bwc.setAmbientTemperature(temperatureC, true);
+        }
     }
 }
 
-    // void setupHA(){}
-    // void handlePrometheusMetrics(){}
-    #include "ha.txt"
-    #include "prometheus.txt"
+// void setupHA(){}
+// void handlePrometheusMetrics(){}
+#include "ha.txt"
+#include "prometheus.txt"

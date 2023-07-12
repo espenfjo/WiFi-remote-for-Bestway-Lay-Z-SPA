@@ -4,33 +4,35 @@
 
 #ifdef ESP8266
 
+#include <CertStoreBearSSL.h>
+#include <ESP8266HTTPClient.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266WiFi.h>
-#include <ESP8266HTTPClient.h>
 #include <ESP8266httpUpdate.h>
 #include <WiFiClientSecure.h>
 #include <time.h>
-// #include "certs.h"
-#include <CertStoreBearSSL.h>
 BearSSL::CertStore certStore;
-
-#else
-
+#elif ESP32
+#include <HTTPUpdate.h>
 #include <WebServer.h>
 #include <WiFi.h>
 
+#undef F
+#define F(...) __VA_ARGS__
 #endif
 
-#include <OneWire.h>
 #include <DallasTemperature.h>
 #include <LittleFS.h>
-#include <PubSubClient.h> // ** Requires library 2.8.0 or higher ** https://github.com/knolleary/pubsubclient
+#include <OneWire.h>
+#include <PubSubClient.h>  // ** Requires library 2.8.0 or higher ** https://github.com/knolleary/pubsubclient
 #include <Ticker.h>
 #include <WebSocketsServer.h>
-// #include <ESP_WiFiManager.h>
 #include <WiFiManager.h>
 #define ESP_WiFiManager WiFiManager
+
+#ifdef ESP8266
 #include <umm_malloc/umm_heap_select.h>
+#endif
 
 #include "bwc.h"
 #include "config.h"
@@ -72,7 +74,8 @@ WiFiClient aWifiClient;
 PubSubClient mqttClient(aWifiClient);
 /**  */
 bool checkMqttConnection = false;
-/** Count of how may times we've connected to the MQTT server since booting (should always be 1 or more) */
+/** Count of how may times we've connected to the MQTT server since booting
+ * (should always be 1 or more) */
 int mqtt_connect_count;
 /**  */
 String prevButtonName = "";
@@ -97,7 +100,7 @@ void startOTA();
 void stopall();
 void pause_resume(bool action);
 void startWebSocket();
-void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t len);
+void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t len);
 void startHttpServer();
 void handleGetVersions();
 void handleGetHardware();
