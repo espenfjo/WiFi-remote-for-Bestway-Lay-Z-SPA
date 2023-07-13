@@ -24,13 +24,19 @@ jobs:
         working-directory: Code
         run: pio run
 
+      - name: Build PlatformIO FS
+        working-directory: Code
+        run: pio run -t buildfs
+
       - name: Publish the release
         uses: release-drafter/release-drafter@v5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
-        with: |
-          ${{ github.workspace }}/.pio/build/nodemcuv2/firmware.bin
-          ${{ github.workspace }}/.pio/build/esp32/firmware.bin
+        with:
+          files: |
+            ${{ github.workspace }}/.pio/build/nodemcuv2/firmware.bin
+            ${{ github.workspace }}/.pio/build/esp32/firmware.bin
