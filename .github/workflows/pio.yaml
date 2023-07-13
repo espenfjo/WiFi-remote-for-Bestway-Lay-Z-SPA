@@ -23,3 +23,8 @@ jobs:
       - name: Build PlatformIO Project
         working-directory: Code
         run: pio run
+        
+      - name: Publish the release
+        uses: release-drafter/release-drafter@v5.24.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
