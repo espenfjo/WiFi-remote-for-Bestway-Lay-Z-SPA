@@ -28,3 +28,9 @@ jobs:
         uses: release-drafter/release-drafter@v5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with: |
+          ${{ github.workspace }}/.pio/build/nodemcuv2/firmware.bin
+          ${{ github.workspace }}/.pio/build/esp32/firmware.bin
